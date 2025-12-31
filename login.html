@@ -313,8 +313,29 @@
         </form>
     </div>
 
+    <!-- FIREBASE SDKs (Compat version for v8 styles used in this stack) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- APP LOGIC -->
+    <script src="js/firebase-config.js"></script>
+
     <script>
         let currentTab = 'signup';
+        // Initialize Firebase
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // Check if already logged in
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Determine if user is admin or regular user?
+                // For now, assuming successful login redirects to platform
+                console.log("User already logged in:", user.email);
+                window.location.href = 'index.html';
+            }
+        });
 
         function switchTab(tab) {
             currentTab = tab;
@@ -354,19 +375,64 @@
             // Get form values
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const country = document.getElementById('country').value;
-            const currency = document.getElementById('currency').value;
+            const btn = document.querySelector('.submit-btn');
+            const originalBtnText = btn.innerHTML;
 
-            // Store in localStorage (no validation - accept any credentials)
-            localStorage.setItem('quotex_user', JSON.stringify({
-                email: email,
-                country: country,
-                currency: currency,
-                loginTime: new Date().toISOString()
-            }));
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
 
-            // Redirect to trading platform
-            window.location.href = 'index.html';
+            if (currentTab === 'signin') {
+                // SIGN IN
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        // Signed in
+                        const user = userCredential.user;
+                        console.log("Login successful", user);
+                        // onAuthStateChanged will handle redirect
+                    })
+                    .catch((error) => {
+                        console.error("Login error", error);
+                        alert("Login Failed: " + error.message);
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
+                    });
+            } else {
+                // SIGN UP
+                const country = document.getElementById('country').value;
+                const currency = document.getElementById('currency').value;
+                const ageCheck = document.getElementById('ageCheck').checked;
+
+                if (!ageCheck) {
+                    alert("You must confirm your age.");
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        // Signed up
+                        const user = userCredential.user;
+                        console.log("Signup successful", user);
+
+                        // Save extra user details to Realtime Database
+                        return db.ref('users/' + user.uid).set({
+                            email: email,
+                            country: country,
+                            currency: currency,
+                            createdAt: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    })
+                    .then(() => {
+                        // onAuthStateChanged will handle redirect
+                    })
+                    .catch((error) => {
+                        console.error("Signup error", error);
+                        alert("Signup Failed: " + error.message);
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
+                    });
+            }
         }
     </script>
 </body>

