@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Account Setup Tool</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #161b22;
+            padding: 40px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            width: 350px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #fff;
+        }
+
+        p {
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #2ea043;
+        }
+
+        .success {
+            color: #2ea043;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #da3633;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .links {
+            margin-top: 20px;
+            font-size: 12px;
+        }
+
+        a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>🔑 Create Admin Access</h2>
+        <p>Since you are the owner, use this tool to create your first admin account safely.</p>
+
+        <input type="email" id="email" placeholder="Enter a new Email (e.g. admin@mysite.com)">
+        <input type="password" id="password" placeholder="Enter a secure Password (min 6 chars)">
+
+        <button onclick="createAccount()">CREATE ADMIN ACCOUNT</button>
+
+        <div id="status"></div>
+
+        <div class="links">
+            <a href="admin.html">← Back to Admin Panel</a>
+        </div>
+    </div>
+
+    <!-- FIREBASE SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <!-- CONFIG -->
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        // Initialize
+        const app = initFirebaseApp();
+        const auth = app.auth();
+
+        function createAccount() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const statusDiv = document.getElementById('status');
+
+            statusDiv.innerHTML = '<span style="color:#8b949e">Connecting to security server...</span>';
+
+            if (!email || !pass) {
+                statusDiv.innerHTML = '<div class="error">⚠️ Please fill in both email and password.</div>';
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    // Signed in 
+                    var user = userCredential.user;
+                    console.log("Success", user);
+                    statusDiv.innerHTML = `
+                    <div class="success">✅ SUCCESS! Account Created.</div>
+                    <p style="color:#c9d1d9">You can now go to the <a href="admin.html" style="font-weight:bold">Admin Panel</a> and login with these details.</p>
+                `;
+                })
+                .catch((error) => {
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
+                    console.error(error);
+
+                    let friendlyError = errorMessage;
+                    if (errorCode === 'auth/operation-not-allowed') {
+                        friendlyError = "⚠️ ENABLE EMAIL AUTH: You must go to your Firebase Console -> Authentication -> Sign-in method -> Enable 'Email/Password'.";
+                    } else if (errorCode === 'auth/email-already-in-use') {
+                        friendlyError = "⚠️ This email is already registered. Try logging in!";
+                    }
+
+                    statusDiv.innerHTML = `<div class="error">${friendlyError}</div>`;
+                });
+        }
+    </script>
+
+</body>
+
+</html>
