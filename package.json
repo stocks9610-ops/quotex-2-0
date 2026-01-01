@@ -5,5 +5,8 @@
   "scripts": {
     "build": "echo 'No build step required'",
     "install": "echo 'No install script required'"
+  },
+  "devDependencies": {
+    "wrangler": "^4.54.0"
   }
 }
