@@ -39,7 +39,7 @@ temp/
 
 # Cloudflare
 .wrangler/
-wrangler.toml
+# wrangler.toml (now tracked)
 
 # Firebase (if using local config)
 .firebase/

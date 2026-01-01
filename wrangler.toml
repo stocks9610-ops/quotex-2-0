@@ -1,0 +1,10 @@
+name = "quotex-pro"
+type = "javascript"
+
+[site]
+bucket = "./"
+entry-point = "."
+pages_build_output_dir = "."
+
+[build]
+command = "echo 'No build step required'"
