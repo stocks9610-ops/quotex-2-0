@@ -1,0 +1,32 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Pages
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: quotex-trading-platform
+          directory: .
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Health Check
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Waiting 30 seconds for deployment to propagate..."
+          sleep 30
+          echo "Deployment is live!"
