@@ -7,44 +7,20 @@ const auth = firebase.auth();
 // --- STATE MANAGEMENT ---
 let currentUser = null;
 
-// --- AUTHENTICATION BYPASS (UNTIL LAUNCH) ---
-// Immediately bypass authentication when DOM loads
-document.addEventListener('DOMContentLoaded', function () {
-    const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay) {
-        // Hide login overlay immediately - bypass authentication
-        loginOverlay.style.display = 'none';
-        console.log("⚠️ ADMIN AUTH BYPASSED - Development Mode");
-        // Set a fake current user to allow actions
-        currentUser = { email: 'admin@bypass.dev', uid: 'bypass-mode' };
-        setTimeout(() => startListeners(), 100); // Start listeners without authentication
-    }
-});
-
-// Also run immediately in case DOM is already loaded
-setTimeout(function () {
-    const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay) {
-        loginOverlay.style.display = 'none';
-        console.log("⚠️ ADMIN AUTH BYPASSED - Development Mode (Immediate)");
-        currentUser = { email: 'admin@bypass.dev', uid: 'bypass-mode' };
-        if (typeof startListeners === 'function') {
-            startListeners();
-        }
-    }
-}, 0);
-
+// --- AUTHENTICATION ---
 auth.onAuthStateChanged((user) => {
+    const loginOverlay = document.getElementById('loginOverlay');
     if (user) {
         currentUser = user;
         console.log("Logged in as:", user.email);
         loginOverlay.style.display = 'none';
         startListeners(); // ONLY start listening to sensitive data if logged in
     } else {
-        // In bypass mode, keep overlay hidden
-        if (loginOverlay) {
-            loginOverlay.style.display = 'none';
-        }
+        currentUser = null;
+        loginOverlay.style.display = 'flex';
+        // Clear sensitive UI
+        document.getElementById('withdrawalTable').innerHTML = '';
+        document.getElementById('currentSignal').innerText = 'OFFLINE';
     }
 });
 
@@ -53,15 +29,6 @@ function login() {
     const pass = document.getElementById('adminPass').value;
     const btn = document.querySelector('.login-box button');
 
-    // Bypass mode - accept any credentials
-    console.log("Login bypassed - auto-granting access");
-    if (loginOverlay) loginOverlay.style.display = 'none';
-    currentUser = { email: email || 'admin@bypass.dev', uid: 'bypass-mode' };
-    startListeners();
-    return;
-
-    // Original Firebase auth (commented out for bypass)
-    /*
     if (!email || !pass) {
         alert("Please enter both email and password.");
         return;
@@ -79,7 +46,6 @@ function login() {
             btn.innerText = "UNLOCK SYSTEM";
             alert("Login Failed: " + error.message);
         });
-    */
 }
 
 function logout() {
@@ -147,20 +113,24 @@ function startListeners() {
     });
 
     // 3. LOAD SETTINGS
-    db.ref('settings/walletAddress').once('value').then(snap => {
-        if (snap.val()) document.getElementById('walletInput').value = snap.val();
+    db.ref('settings/wallets').once('value').then(snap => {
+        const wallets = snap.val() || {};
+        if (wallets.TRON) document.getElementById('walletInputTRON').value = wallets.TRON;
+        if (wallets.ETH) document.getElementById('walletInputETH').value = wallets.ETH;
+        if (wallets.BSC) document.getElementById('walletInputBSC').value = wallets.BSC;
+        if (wallets.BTC) document.getElementById('walletInputBTC').value = wallets.BTC;
     });
 }
 
 // --- ACTIONS ---
 window.sendSignal = function (type) {
-    if (!currentUser) return;
+    if (!currentUser) return alert("Action Blocked: You are not logged in.");
     db.ref('control/signal').set(type)
         .catch(err => alert("Error setting signal: " + err.message));
 };
 
 window.processWithdrawal = function (id, status) {
-    if (!currentUser) return;
+    if (!currentUser) return alert("Action Blocked: You are not logged in.");
     if (!confirm(`Are you sure you want to mark this as ${status}?`)) return;
 
     db.ref('withdrawals/' + id).update({ status: status })
@@ -169,12 +139,59 @@ window.processWithdrawal = function (id, status) {
 };
 
 window.saveSettings = function () {
-    if (!currentUser) return;
-    const addr = document.getElementById('walletInput').value;
-    db.ref('settings/walletAddress').set(addr)
-        .then(() => alert('Wallet Address Updated Successfully!'))
+    if (!currentUser) return alert("Action Blocked: You are not logged in.");
+
+    const wallets = {
+        TRON: document.getElementById('walletInputTRON').value,
+        ETH: document.getElementById('walletInputETH').value,
+        BSC: document.getElementById('walletInputBSC').value,
+        BTC: document.getElementById('walletInputBTC').value
+    };
+
+    db.ref('settings/wallets').set(wallets)
+        .then(() => alert('Wallet Addresses Updated Successfully!'))
         .catch(err => alert("Error saving settings: " + err.message));
 };
+
+// --- SCHEDULER LOGIC ---
+let scheduledTask = null; // { time: "HH:MM", signal: "UP" }
+
+window.scheduleSignal = function () {
+    const time = document.getElementById('schedTime').value;
+    const sig = document.getElementById('schedSignal').value;
+
+    if (!time) return alert("Please select a time.");
+
+    scheduledTask = { time, signal: sig };
+
+    // UI Update
+    document.getElementById('schedStatus').style.display = 'block';
+    document.getElementById('schedText').innerText = `${sig} at ${time}`;
+    alert(`Signal ${sig} scheduled for ${time}`);
+};
+
+window.cancelSchedule = function () {
+    scheduledTask = null;
+    document.getElementById('schedStatus').style.display = 'none';
+};
+
+// Check Time Loop
+setInterval(() => {
+    if (!scheduledTask) return;
+
+    const now = new Date();
+    const currentHM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    // Also check seconds to avoid multiple triggers in the same minute
+
+    if (currentHM === scheduledTask.time) {
+        console.log("⏰ Executing Scheduled Task:", scheduledTask);
+        window.sendSignal(scheduledTask.signal);
+
+        // Notify & Clear
+        console.log(`Executed Scheduled Signal: ${scheduledTask.signal}`);
+        window.cancelSchedule();
+    }
+}, 1000); // Check every second
 
 // --- NAVIGATION ---
 window.showSection = function (id) {
@@ -199,3 +216,11 @@ document.querySelectorAll('.nav-item').forEach(item => {
         }
     });
 });
+
+// --- VOLATILITY ---
+window.setVolatility = function () {
+    const val = document.getElementById('volRange').value;
+    db.ref('control/speed').set(parseFloat(val))
+        .then(() => alert("Speed updated to " + val + "x"))
+        .catch(e => alert("Error: " + e.message));
+};

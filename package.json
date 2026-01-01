@@ -1,0 +1,9 @@
+{
+  "name": "quotex-pro",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "install": "echo 'No install script required'"
+  }
+}
