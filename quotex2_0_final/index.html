@@ -3,90 +3,407 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Quotex 2.0 – The Future of Trading</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS | Institutional Trading Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
     <style>
-        body,
-        html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            background: #0a0e12;
+        :root {
+            --neon-green: #00ff41;
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-gold: #ffd700;
+            --bg-dark: #0b0e11;
+            --panel-bg: #131722;
+            --border-color: #2a2e39;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #d1d4dc;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .font-mono {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .text-neon-green {
+            color: var(--neon-green);
+        }
+
+        .text-neon-red {
+            color: var(--neon-red);
+        }
+
+        /* HEADER */
+        header {
+            height: 60px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 50;
+        }
+
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* LEFT SIDEBAR */
+        .sidebar-left {
+            width: 280px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 40;
+        }
+
+        .chart-area {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        .sidebar-right {
+            width: 340px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 40;
+        }
+
+        #terminal {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: #888;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .terminal-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+            background: #131722;
+        }
+
+        .ai-btn {
+            background: #2a2e39;
+            border: 1px solid #363c4e;
             color: #fff;
-            font-family: "Inter", sans-serif;
-            overflow: hidden;
+            padding: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
         }
 
-        .header {
+        .ai-btn:hover {
+            background: #363c4e;
+        }
+
+        .ai-btn.green {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .ai-btn.blue {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .strat-card {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .strat-card:hover {
+            background: #1c212e;
+        }
+
+        .strat-card.active {
+            background: #1e222d;
+            border-left: 3px solid var(--neon-green);
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-60px);
+                opacity: 0;
+            }
+        }
+
+        .flyer {
             position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 2.6rem;
-            font-weight: 800;
-            color: #00b894;
-            white-space: nowrap;
-            overflow: hidden;
-            border-right: .15em solid #00b894;
+            font-weight: bold;
+            font-family: 'Share Tech Mono';
+            z-index: 100;
+            animation: float-up 2.5s forwards;
+            pointer-events: none;
         }
 
-        @keyframes typing {
-            from {
-                width: 0
-            }
-
-            to {
-                width: 100%
-            }
-        }
-
-        @keyframes blink {
-
-            from,
-            to {
-                border-color: transparent
-            }
-
-            50% {
-                border-color: #00b894
-            }
-        }
-
-        .typewriter {
-            width: 0;
-            animation: typing 3.5s steps(30, end) forwards,
-                blink .75s step-end infinite;
-        }
-
-        #chart {
+        .ticker-wrap {
+            position: fixed;
+            bottom: 0;
+            left: 0;
             width: 100%;
-            height: 100%;
+            height: 30px;
+            background: #000;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            font-size: 12px;
+        }
+
+        .ticker-content {
+            white-space: nowrap;
+            animation: ticker 40s linear infinite;
+            color: #666;
+            font-family: 'Share Tech Mono';
+        }
+
+        @keyframes ticker {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        #event-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .hidden {
+            display: none !important;
         }
     </style>
-    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 
-<body>
-    <div class="header"><span class="typewriter">Quotex 2.0: The Future of Trading</span></div>
-    <div id="chart"></div>
+<body onclick="initAudioContext()">
+
+    <header>
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-500 flex items-center justify-center font-bold text-black rounded-sm">N</div>
+            <div>
+                <h1 class="font-bold text-lg text-white leading-none">NEXUS <span class="text-neon-green">PRO</span>
+                </h1>
+                <span class="text-[9px] text-gray-500 tracking-[0.2em] font-mono">INSTITUTIONAL LIQUIDITY
+                    TERMINAL</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-8">
+            <div class="text-right">
+                <div class="text-[10px] text-gray-500 uppercase">Equity Balance</div>
+                <div class="font-mono text-xl text-white font-bold" id="header-balance">$42,150.00</div>
+            </div>
+
+            <button onclick="toggleGodMode()"
+                class="border border-red-900 text-red-500 px-4 py-1 text-xs font-bold rounded hover:bg-red-900/20 transition-all">
+                VOLATILITY BOOST
+            </button>
+
+            <div
+                class="w-9 h-9 bg-gray-800 rounded-full border border-gray-700 flex items-center justify-center text-xs">
+                TR</div>
+        </div>
+    </header>
+
+    <div class="app-container">
+
+        <!-- STRATEGIES LIST -->
+        <nav class="sidebar-left">
+            <div class="p-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-color">
+                Available Alpha Algos</div>
+
+            <div class="strat-card active" onclick="selectAlgo(this, 'SCALP_V3')">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-sm text-white">M1 Scalp Engine</span>
+                    <span class="text-[9px] text-green-400 border border-green-900 px-1 rounded">LIVE</span>
+                </div>
+                <div class="flex justify-between text-[11px]">
+                    <span class="text-gray-500">Win Rate: 92.4%</span>
+                    <span class="text-neon-green font-mono">+$1,240.20</span>
+                </div>
+            </div>
+
+            <div class="strat-card" onclick="selectAlgo(this, 'WHALE_WATCH')">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-sm text-white">Whale Order Flow</span>
+                    <span class="text-[9px] text-green-400 border border-green-900 px-1 rounded">LIVE</span>
+                </div>
+                <div class="flex justify-between text-[11px]">
+                    <span class="text-gray-500">Win Rate: 88.1%</span>
+                    <span class="text-neon-green font-mono">+$3,412.00</span>
+                </div>
+            </div>
+
+            <div class="mt-auto p-4 bg-black/20 border-t border-color">
+                <div class="text-[10px] text-gray-500 mb-2">SYSTEM TELEMETRY</div>
+                <div class="flex justify-between text-xs mb-1">
+                    <span>Latency</span>
+                    <span class="text-neon-green">4ms</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                    <span>API Bridge</span>
+                    <span class="text-neon-green">Connected</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- CHART AREA -->
+        <main class="chart-area" id="chart-container">
+            <iframe src="chart.html" style="border:none;width:100%;height:100%;"></iframe>
+
+            <div id="event-overlay" class="hidden">
+                <div class="bg-[#131722] border border-red-600 p-8 text-center max-w-sm">
+                    <h2 class="text-2xl font-bold text-red-500 mb-2 font-mono">ALGO RE-CALIBRATION</h2>
+                    <p id="event-text" class="text-white text-sm font-mono uppercase">Liquidity Shock Detected</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- COMMAND & SIGNALS -->
+        <aside class="sidebar-right">
+            <div class="p-3 bg-black/40 border-b border-color flex justify-between items-center">
+                <span class="text-[10px] font-bold text-gray-400">EXECUTION LOGS</span>
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            </div>
+
+            <div id="terminal" class="terminal-scroll">
+                <p class="text-neon-green">>> Terminal Initialized...</p>
+                <p class="text-gray-500">>> Liquidity sources verified (Binance, ByBit, CME)</p>
+            </div>
+
+            <div class="p-3 bg-black/20 border-t border-color">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-neon-green text-xs">></span>
+                    <input type="text" id="nexusInput"
+                        class="bg-transparent text-xs text-white w-full focus:outline-none font-mono"
+                        placeholder="Query Algos or request Signal..." autocomplete="off">
+                </div>
+            </div>
+
+            <div class="action-grid">
+                <button onclick="generateAlphaSignal()" class="ai-btn green border-green-900">
+                    <span class="text-lg">📊</span>
+                    <span>Get Signal</span>
+                </button>
+                <button onclick="consultOracle()" class="ai-btn blue border-blue-900">
+                    <span class="text-lg">💡</span>
+                    <span>Market Insight</span>
+                </button>
+                <button onclick="toggleVoiceMode()" id="voice-btn" class="ai-btn">
+                    <span class="text-lg">🔊</span>
+                    <span>Voice Audio</span>
+                </button>
+                <button onclick="triggerGlobalEvent()" class="ai-btn red border-red-900">
+                    <span class="text-lg">📉</span>
+                    <span>Shock Event</span>
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <div class="ticker-wrap">
+        <div class="ticker-content" id="news-ticker-content">
+            BTC/USD 1H: BOLLINGER BAND SQUEEZE DETECTED // EUR/USD: ECB INTEREST RATE ANNOUNCEMENT PENDING // GOLD:
+            LIQUIDITY GRAB AT $2,050 COMPLETED
+        </div>
+    </div>
+
     <script>
-        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            width: window.innerWidth,
-            height: window.innerHeight,
-            layout: { backgroundColor: '#0a0e12', textColor: '#fff' },
-            grid: { vertLines: { color: '#2a2e39' }, horzLines: { color: '#2a2e39' } },
-            rightPriceScale: { borderColor: '#2a2e39' },
-            timeScale: { borderColor: '#2a2e39' }
-        });
-        const lineSeries = chart.addLineSeries({ color: '#00b894', lineWidth: 2 });
-        const data = [
-            { time: '2026-01-01', value: 100 },
-            { time: '2026-01-02', value: 102 },
-            { time: '2026-01-03', value: 101 },
-            { time: '2026-01-04', value: 105 },
-            { time: '2026-01-05', value: 103 }
-        ];
-        lineSeries.setData(data);
-        window.addEventListener('resize', () => chart.resize(window.innerWidth, window.innerHeight));
+        const apiKey = "";
+        let isGodMode = false, isVoiceEnabled = false, isCrashing = false, audioCtx;
+
+        // --- CHART SETUP ---
+        const container = document.getElementById('tv-chart'); // not used directly; chart is in iframe
+        // The iframe loads chart.html which contains its own chart logic.
+
+        // --- GEMINI ACTIONS ---
+        async function callGemini(prompt, isAudio = false) {
+            let model = isAudio ? "gemini-2.5-flash-preview-tts" : "gemini-2.5-flash-preview-09-2025";
+            let config = isAudio ? { generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } } } : {};
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], ...config })
+                });
+                const d = await res.json();
+                if (isAudio) playBase64(d.candidates[0].content.parts[0].inlineData.data);
+                return d.candidates[0].content.parts[0].text;
+            } catch (e) { return "TRANSMISSION_ERROR"; }
+        }
+
+        async function generateAlphaSignal() { initAudioContext(); addLog("SCANNING LIQUIDITY POOLS FOR ALPHA...", "text-neon-gold"); const res = await callGemini("Generate a realistic high‑probability trading signal for BTC/USD. Include Entry price (around 42k), Stop Loss, and 3 Take Profit targets. Max 25 words.", false); addLog(`ALPHA_SIGNAL: ${res}`, "text-neon-green"); if (isVoiceEnabled) callGemini(`Alert. Signal detected. ${res}`, true); }
+        async function consultOracle() { initAudioContext(); addLog("REQUESTING INSIGHT FROM ANALYTICS CORE...", "text-neon-blue"); const res = await callGemini("Give a professional, brief market outlook on current volatility trends. Max 20 words.", false); addLog(`INSIGHT: ${res}`, "text-white"); }
+        async function triggerGlobalEvent() { if (isCrashing) return; initAudioContext(); isCrashing = true; document.getElementById('event-overlay').classList.remove('hidden'); const res = await callGemini("Short institutional news alert headline for a sudden crypto flash crash. 8 words max.", false); document.getElementById('event-text').innerText = res.toUpperCase(); addLog(`CRITICAL: ${res}`, "text-neon-red"); setTimeout(() => { isCrashing = false; document.getElementById('event-overlay').classList.add('hidden'); addLog('RE‑STABILIZING ORDER BOOKS...', 'text-neon-green'); }, 6000); }
+
+        const input = document.getElementById('nexusInput');
+        input.addEventListener('keypress', async e => { if (e.key === 'Enter' && input.value) { const q = input.value; addLog(`USER: ${q}`, 'text-white'); input.value = ''; const res = await callGemini(`Institutional trading assistant response. User: ${q}`, isVoiceEnabled); if (!isVoiceEnabled) addLog(`NEXUS: ${res}`, 'text-neon-blue'); } });
+
+        function addLog(m, c = 'text-gray-400') { const p = document.createElement('p'); p.className = c; p.innerText = `>> [${new Date().toLocaleTimeString()}] ${m}`; const t = document.getElementById('terminal'); t.appendChild(p); t.scrollTop = t.scrollHeight; }
+        function toggleGodMode() { isGodMode = !isGodMode; addLog(isGodMode ? "HFT OVERDRIVE ENGAGED" : "HFT NORMALIZED"); }
+        function toggleVoiceMode() { isVoiceEnabled = !isVoiceEnabled; document.getElementById('voice-btn').classList.toggle('bg-blue-900/40'); }
+        function initAudioContext() { if (!audioCtx) audioCtx = new AudioContext(); }
+        function selectAlgo(el, id) { document.querySelectorAll('.strat-card').forEach(c => c.classList.remove('active')); el.classList.add('active'); addLog(`SWITCHED TO ${id} ENGINE`); }
+        function playBase64(b64) { const bin = atob(b64); const buf = new ArrayBuffer(44 + bin.length); const view = new DataView(buf); const s = (v, o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); }; s(view, 0, 'RIFF'); view.setUint32(4, 36 + bin.length, true); s(view, 8, 'WAVE'); s(view, 12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); s(view, 36, 'data'); view.setUint32(40, bin.length, true); const u = new Uint8Array(buf, 44); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))); a.play(); }
+        window.addEventListener('resize', () => { const iframe = document.querySelector('iframe'); if (iframe) { iframe.style.width = '100%'; iframe.style.height = '100%'; } });
     </script>
 </body>
 

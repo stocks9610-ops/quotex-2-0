@@ -112,13 +112,25 @@ function startListeners() {
         document.getElementById('emptyWithdrawals').style.display = pendingCount > 0 ? 'none' : 'block';
     });
 
-    // 3. LOAD SETTINGS
+    // 3. LOAD SETTINGS (Firebase first, fallback to local JSON)
     db.ref('settings/wallets').once('value').then(snap => {
         const wallets = snap.val() || {};
         if (wallets.TRON) document.getElementById('walletInputTRON').value = wallets.TRON;
         if (wallets.ETH) document.getElementById('walletInputETH').value = wallets.ETH;
         if (wallets.BSC) document.getElementById('walletInputBSC').value = wallets.BSC;
         if (wallets.BTC) document.getElementById('walletInputBTC').value = wallets.BTC;
+        // Fallback to local JSON if Firebase returns empty
+        if (!wallets.TRON && !wallets.ETH && !wallets.BSC && !wallets.BTC) {
+            fetch('wallets.json')
+                .then(r => r.json())
+                .then(local => {
+                    if (local.TRON) document.getElementById('walletInputTRON').value = local.TRON;
+                    if (local.ETH) document.getElementById('walletInputETH').value = local.ETH;
+                    if (local.BSC) document.getElementById('walletInputBSC').value = local.BSC;
+                    if (local.BTC) document.getElementById('walletInputBTC').value = local.BTC;
+                })
+                .catch(err => console.error('Failed to load local wallets.json', err));
+        }
     });
 }
 
